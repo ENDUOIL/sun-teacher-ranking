@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>25.1班操行排位赛-完备版</title>
+    <style>
+        :root { --blue: #1e466e; --red: #e63946; --green: #2a9d8f; --gold: #ffd700; --dark: #0a192f; }
+        body { font-family: -apple-system, sans-serif; background: var(--dark); margin: 0; display: flex; height: 100vh; color: #fff; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* 侧边栏：增加底部填充，防止红按钮挡住最后一名 */
+        #rankSidebar { width: 100px; background: rgba(0,0,0,0.6); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; padding: 10px 5px; box-sizing: border-box; }
+        #rankList { flex: 1; overflow-y: auto; padding-bottom: 80px; } /* 关键：留出空位 */
+        .rank-item { font-size: 10px; margin-bottom: 12px; border-left: 2px solid var(--gold); padding-left: 5px; }
+        .rank-num { font-weight: bold; color: var(--gold); }
+        .rank-name-small { color: #fff; display: block; font-weight: bold; }
+        .rank-tag-small { font-size: 8px; color: #aaa; display: block; }
+
+        /* 主操作区：增加底部填充 */
+        #mainContent { flex: 1; padding: 10px; overflow-y: auto; padding-bottom: 250px; } /* 关键：留出空位 */
+        .card { background: rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* 底部固定区：赛季重开 */
+        .bottom-reset-area { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            background: #1a0000; 
+            border-top: 1px solid #800; 
+            padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); 
+            z-index: 999; 
+            text-align: center;
+        }
+        .master-reset-btn { 
+            background: var(--red); 
+            color: #fff; 
+            border: none; 
+            padding: 10px 25px; 
+            border-radius: 20px; 
+            font-weight: bold; 
+            font-size: 13px; 
+        }
+
+        .week-bar { background: linear-gradient(90deg, #1e466e, #0d253f); padding: 8px; border-radius: 10px; text-align: center; margin-bottom: 10px; border: 1px solid rgba(255,215,0,0.2); }
+        .test-tools { display: flex; gap: 4px; justify-content: center; margin-top: 5px; flex-wrap: wrap; }
+        .test-btn { font-size: 9px; background: rgba(255,255,255,0.1); border: 1px solid #555; color: #fff; padding: 3px 6px; border-radius: 4px; }
+        .stu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .stu-item { padding: 8px 2px; text-align: center; border: 1px solid #444; border-radius: 10px; background: rgba(255,255,255,0.05); position: relative; height: 75px; display: flex; flex-direction: column; justify-content: center; }
+        .is-selected { border: 2px solid var(--gold) !important; background: rgba(255,215,0,0.2) !important; }
+        .score-val { font-size: 1.2rem; font-weight: bold; }
+        .tag { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); font-size: 8px; padding: 1px 4px; border-radius: 3px; white-space: nowrap; z-index: 20; }
+        .tag-red { background: var(--red); } .tag-green { background: var(--green); }
+        .section-title { font-size: 12px; font-weight: bold; border-left: 3px solid var(--gold); padding-left: 6px; margin: 8px 0; color: var(--gold); }
+        select, input { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: #1a1a1a; color: #fff; border: 1px solid #444; }
+        .btn { border: none; border-radius: 8px; padding: 12px; color: white; font-weight: bold; width: 100%; cursor: pointer; margin-bottom: 5px; }
+        .bg-blue { background: #1e88e5; } .bg-green { background: var(--green); } .bg-share { background: #673ab7; }
+    
+body.admin-mode .admin-only{display:block!important}.admin-only{display:none!important}
+#adminLoginBtn{position:fixed;top:6px;right:8px;z-index:999;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.25);color:var(--gold);padding:2px 7px;border-radius:3px;font-size:9px;cursor:pointer;line-height:1.6}#adminLoginBtn:hover{background:rgba(255,215,0,0.25)}#adminLoginModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,30,0.92);z-index:9999;display:none;justify-content:center;align-items:center;flex-direction:column}#adminLoginModal.active{display:flex}#adminLoginModal h3{color:var(--gold);margin-bottom:15px;font-size:18px}#adminLoginModal input{width:220px;padding:12px;margin-bottom:10px;border-radius:8px;border:1px solid #555;background:#1a1a1a;color:white;text-align:center;font-size:16px}#adminLoginModal .btn{width:220px;padding:12px}#adminLoginError{color:var(--red);font-size:12px;margin-top:10px}#passwordModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,30,0.95);z-index:9998;display:none;justify-content:center;align-items:center;flex-direction:column}#passwordModal.active{display:flex}#passwordModal h3{color:var(--gold);margin-bottom:15px}#passwordModal input{width:250px;padding:10px;margin-bottom:8px;border-radius:8px;border:1px solid #555;background:#1a1a1a;color:white;font-size:14px}#passwordModal .btn{width:250px;padding:10px;margin-bottom:5px}#exemptModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,30,0.92);z-index:9997;display:none;justify-content:center;align-items:center;flex-direction:column}#exemptModal.active{display:flex}#exemptModal .em-box{background:#162240;border-radius:16px;padding:28px 24px;width:300px;max-width:85vw;text-align:center;border:1px solid rgba(255,215,0,0.2)}#exemptModal .em-title{font-size:20px;font-weight:bold;color:var(--gold);margin-bottom:4px}#exemptModal .em-date{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px}#exemptModal .em-btn{display:block;width:100%;padding:14px;margin-bottom:10px;border-radius:12px;border:2px solid #444;background:rgba(255,255,255,0.05);color:#fff;font-size:15px;font-weight:bold;cursor:pointer;transition:0.2s}#exemptModal .em-btn.on{border-color:#e63946;background:rgba(230,57,70,0.15);color:#ff6b6b}#exemptModal .em-btn.off{border-color:#2a9d8f;background:rgba(42,157,143,0.12);color:#6bcfc0}#exemptModal .em-close{background:#555;color:#fff;border:none;padding:10px 30px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:4px}#confirmModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:none;justify-content:center;align-items:center}#confirmModal.active{display:flex}#confirmModal .cm-box{background:#1a1a2e;border-radius:14px;padding:24px;width:280px;text-align:center;border:1px solid rgba(255,255,255,0.1)}#confirmModal .cm-msg{font-size:15px;color:#fff;margin-bottom:18px;line-height:1.5;white-space:pre-line}#confirmModal .cm-btns{display:flex;gap:10px}#confirmModal .cm-btns button{flex:1;padding:10px;border-radius:8px;border:none;font-size:14px;font-weight:bold;cursor:pointer}#confirmModal .cm-yes{background:#e63946;color:#fff}#confirmModal .cm-no{background:#444;color:#fff}.stu-checkbox{position:absolute;bottom:2px;left:2px;width:16px;height:16px;border-radius:3px;border:1px solid rgba(255,255,255,0.3);background:transparent;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;cursor:pointer;z-index:5}.stu-checkbox.checked{background:var(--gold);border-color:var(--gold);color:#000}.exempt-icon{position:absolute;top:2px;right:2px;font-size:10px;line-height:1}.force-btn{display:inline-block;padding:4px 12px;border-radius:10px;font-size:10px;font-weight:bold;cursor:pointer;border:1px solid #555;background:rgba(255,255,255,0.05);color:#aaa;transition:0.2s;margin:2px 3px}.force-btn.on{background:rgba(230,57,70,0.2);border-color:#e63946;color:#ff6b6b}
+
+</style>
+</head>
+<body>
+<button id="adminLoginBtn" onclick="showAdminLogin()">🔑 管理员</button>
+<div id="adminLoginModal"><h3>🔑 管理员登录</h3><input type="password" id="adminPw" placeholder="请输入管理员密码" onkeydown="if(event.key==='Enter')adminLogin()"><button class="btn bg-blue" onclick="adminLogin()">进入管理</button><div id="adminLoginError"></div></div>
+<div id="passwordModal"><h3>🔑 修改登录密码</h3><input type="password" id="pwSuper" placeholder="输入超级密码"><input type="password" id="pwNew" placeholder="新密码"><button class="btn bg-green" onclick="changePassword()">确认修改</button><button class="btn" style="background:#555" onclick="closePasswordModal()">取消</button></div>
+<div id="exemptModal"><div class="em-box"><div class="em-title" id="emStudentName"></div><div class="em-date" id="emDateDisplay"></div><button class="em-btn off" id="emNoonBtn" onclick="toggleExemptionClick('noon')">🌅 今天中午不扣分</button><button class="em-btn off" id="emEveningBtn" onclick="toggleExemptionClick('evening')">🌙 今天下午不扣分</button><button class="em-close" onclick="closeExemptPopup()">关闭</button></div></div>
+<div id="confirmModal"><div class="cm-box"><div class="cm-msg" id="confirmMsg"></div><div class="cm-btns"><button class="cm-yes" id="confirmYesBtn">确认</button><button class="cm-no" onclick="closeConfirm()">取消</button></div></div></div>
+
+
+<div id="rankSidebar">
+    <div style="text-align:center; font-size:11px; color:var(--gold); margin-bottom:8px;">🏆 榜单</div>
+    <div id="rankList"></div>
+</div>
+
+<div id="mainContent">
+    <div class="week-bar">
+        <div id="dateNow" style="font-size:14px; font-weight:bold;"></div>
+        <div id="weekInfo" style="font-size:9px; opacity:0.8;"></div>
+        <div class="test-tools">
+            <button class="test-btn" style="color:var(--gold)" onclick="softResetStatus()">🔄 消红标</button>
+            <button class="test-btn" onclick="showPasswordModal()">🔑 改密码</button>
+            <button class="test-btn" id="forceDeductBtn" onclick="toggleForceDeduct()">📅 周末强制执行</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <button class="test-btn" style="flex:1" onclick="selectAll(true)">全勾</button>
+            <button class="test-btn" style="flex:1" onclick="selectAll(false)">全清</button>
+        </div>
+        <div id="stuGrid" class="stu-grid"></div>
+    </div>
+
+    <div class="card">
+        <button class="btn bg-share" onclick="shareRanks()">📢 生成班级排位分享战报</button>
+        <div class="section-title">⚖️ 规则与兑换</div>
+        <select id="ruleSelect">
+            <optgroup label="🔴 违纪扣分">
+                <option value="-8">打架斗殴 | -8分</option>
+                <option value="-5">顶撞老师 | -5分</option>
+                <option value="-4">实训室违规 | -4分</option>
+                <option value="-3">旷课/抽烟 | -3分</option>
+                <option value="-2">不写作业/串寝 | -2分</option>
+                <option value="-1">迟到/睡觉/响铃/串座 | -1分</option>
+                <option value="-1" selected>骂人/卫生差 | -1分</option>
+            </optgroup>
+            <optgroup label="🟢 表现奖励">
+                <option value="15">成功招生 (单人) | +15分</option>
+                <option value="10">校级活动获奖 | +10分</option>
+                <option value="5">班级重大贡献 | +5分</option>
+                <option value="3">考试/测试第1名 | +3分</option>
+                <option value="2">考试/测试第2名 | +2分</option>
+                <option value="1">考试/测试第3名 | +1分</option>
+                <option value="2">积极参加活动 | +2分</option>
+                <option value="1">完成老师交代的任务 | +1分</option>
+            </optgroup>
+            <optgroup label="⚡ 1分兑换区">
+                <option value="-1">兑换：中午手机权 | -1分</option>
+                <option value="-1">兑换：晚上手机权 | -1分</option>
+                <option value="-1">兑换：教室充电一次 | -1分</option>
+            </optgroup>
+            <optgroup label="🥤 物资限制">
+                <option value="TEA">兑换：冰红茶 (14天限购) | -5分</option>
+            </optgroup>
+            <optgroup label="✨ 特殊操作">
+                <option value="10">【福利】本周表现优异加分 | +10分</option>
+            </optgroup>
+        </select>
+        <button class="btn bg-blue" onclick="applyRule()">确认提交</button>
+        <button id="punishConfirmBtn" class="btn bg-green" onclick="confirmPunish()" disabled>🤝 手机收纳确认</button>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; gap:5px;"><input type="number" id="flexVal" style="flex:1" placeholder="分值"><input type="text" id="flexReason" style="flex:2" placeholder="原因备注"></div>
+        <button class="btn" style="background:#555" onclick="applyFlex()">自定义手动微调</button>
+    </div>
+</div>
+
+<div class="bottom-reset-area">
+    <button class="master-reset-btn" onclick="hardResetScores()">💥 终结赛季·全员复位15分</button>
+</div>
+
+<script>
+    const STUS = ["包顺通","郑清颢","邹仁泽","秦韵贺","赵巍霖","王晨旭","张广涛","程泓博","姜乙丰","唐佳奇","赵梓渤","吴俊霖","王译广"];
+    const API_BASE = "/api";
+    let virtualTime = new Date().getTime();
+    let db = {scores:{},punishRecords:{},maxDoneLevel:{},teaHistory:{},phoneExemptions:{},autoDeductLog:{},forceAutoDeduct:false};
+    let selected = new Set(), authPassword = "", isAdmin = false;
+
+    function getRankLabel(s) {
+        if (s > 30) return `荣耀王者 ${s-30}🌟`; if (s >= 26) return "最强王者👑"; if (s >= 21) return `至尊星耀 ${5-(25-s)}`;
+        if (s >= 16) return `永恒钻石 ${5-(20-s)}`; if (s >= 11) return `尊贵铂金 ${5-(15-s)}`; if (s >= 6) return `不屈黄金 ${5-(10-s)}`;
+        if (s >= 1) return `秩序青铜 ${5-(5-s)}`; return `堕落废铁 ${s}`;
+    }
+
+    async function loadFromServer(){
+      try{var resp=await fetch(API_BASE+"/data?"+Date.now(),{headers:{"x-password":"251"}});
+      var result=await resp.json();
+      if(result.success&&result.data){
+        db=result.data;if(!db.scores)db.scores={};db.phoneExemptions=db.phoneExemptions||{};
+        db.autoDeductLog=db.autoDeductLog||{};if(db.forceAutoDeduct===undefined)db.forceAutoDeduct=false;
+        STUS.forEach(function(n){if(db.scores[n]===undefined)db.scores[n]=15;});return true;
+      }return false;
+    }catch(e){return false}}
+
+    async function saveToServer(){try{var resp=await fetch(API_BASE+"/data",{method:"POST",headers:{"Content-Type":"application/json","x-password":authPassword||"251"},body:JSON.stringify({data:db})});return(await resp.json()).success;}catch(e){return false}}
+
+    function showAdminLogin(){document.getElementById("adminPw").value="";document.getElementById("adminLoginError").innerText="";document.getElementById("adminLoginModal").classList.add("active");setTimeout(function(){document.getElementById("adminPw").focus();},100)}
+
+    async function adminLogin(){
+      var pw=document.getElementById("adminPw").value;if(!pw){document.getElementById("adminLoginError").innerText="请输入密码";return}
+      var resp=await fetch(API_BASE+"/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})});
+      var result=await resp.json();
+      if(result.success){
+        authPassword=pw;isAdmin=true;
+        document.getElementById("adminLoginModal").classList.remove("active");
+        document.getElementById("adminLoginBtn").style.display="none";
+        var r2=await fetch(API_BASE+"/data?"+Date.now(),{headers:{"x-password":authPassword}});
+        var d2=await r2.json();if(d2.success&&d2.data){db=d2.data;if(!db.scores)db.scores={};db.phoneExemptions=db.phoneExemptions||{};db.autoDeductLog=db.autoDeductLog||{};if(db.forceAutoDeduct===undefined)db.forceAutoDeduct=false;STUS.forEach(function(n){if(db.scores[n]===undefined)db.scores[n]=15;});}
+        init();
+      }else document.getElementById("adminLoginError").innerText="❌ 密码错误";
+    }
+
+    function showPasswordModal(){document.getElementById("passwordModal").classList.add("active")}
+    function closePasswordModal(){document.getElementById("passwordModal").classList.remove("active")}
+
+    async function changePassword(){
+      var spw=document.getElementById("pwSuper").value;var npw=document.getElementById("pwNew").value;
+      if(!npw){alert("请输入新密码");return}
+      var resp=await fetch(API_BASE+"/change-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({super_password:spw,new_password:npw})});
+      var result=await resp.json();if(result.success){alert("✅ 密码已修改成功！");authPassword=npw;closePasswordModal()}else alert("❌ "+(result.error||"修改失败"));
+    }
+
+    function init(){
+        const now=new Date(virtualTime);const weeks=["日","一","二","三","四","五","六"];
+        document.getElementById("dateNow").innerText=`${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} 星期${weeks[now.getDay()]}`;
+        const d=now.getDay()||7;const mon=new Date(now.getTime()-(d-1)*24*3600*1000);
+        const sun=new Date(mon.getTime()+6*24*3600*1000);
+        document.getElementById("weekInfo").innerText=`周：${mon.getMonth()+1}.${mon.getDate()}-${sun.getMonth()+1}.${sun.getDate()}`;
+        if(!db.scores)db.scores={};
+        let data=STUS.map(n=>{if(db.scores[n]===undefined)db.scores[n]=15;return{name:n,score:db.scores[n]}}).sort((a,b)=>b.score-a.score);
+        document.getElementById("rankList").innerHTML=data.map((item,idx)=>`<div class="rank-item"><span class="rank-num">${idx+1}</span><span class="rank-name-small">${item.name}</span><span class="rank-tag-small">${getRankLabel(item.score)}</span></div>`).join("");
+        const grid=document.getElementById("stuGrid");grid.innerHTML="";let pendingNum=0;
+        STUS.forEach(name=>{
+            if(!db.scores)db.scores={};const s=db.scores[name];const item=document.createElement("div");
+            item.className=`stu-item ${selected.has(name)?"is-selected":""}`;
+            let lv=(s<=-15)?15:(s<=-10)?10:(s<=-5)?5:0;let tagHTML="";
+            if(lv>0){
+                const maxDone=db.maxDoneLevel[name]||0;
+                if(db.punishRecords[name+"_"+lv])tagHTML=`<div class="tag tag-green">已收${lv/5}晚</div>`;
+                else if(maxDone>lv)tagHTML=`<div class="tag tag-gray">🛡️ 豁免</div>`;
+                else{tagHTML=`<div class="tag tag-red">🚨 待收${lv/5}晚</div>`;if(selected.has(name)&&isAdmin)pendingNum++}
+            }
+            item.innerHTML=`<span class="score-val">${s}</span><span class="name-val">${name}</span>${tagHTML}<div class="exempt-icon" id="exIcon-${name}"></div>`;
+            if(isAdmin){
+              item.onclick=function(e){if(e.target.classList.contains("stu-checkbox"))return;openExemptPopup(name);};
+              var cb=document.createElement("div");cb.className="stu-checkbox"+(selected.has(name)?" checked":"");
+              cb.textContent=selected.has(name)?"✓":"";
+              cb.onclick=function(e){e.stopPropagation();selected.has(name)?selected.delete(name):selected.add(name);init();};
+              item.appendChild(cb);
+            }else item.onclick=function(){}
+            grid.appendChild(item);
+        });
+        document.getElementById("punishConfirmBtn").disabled=pendingNum===0;
+        document.getElementById("punishConfirmBtn").innerText=pendingNum>0?`确认勾选 (${pendingNum}) 人没收`:`无待扣项`;
+        updateExemptIcons();updateForceBtn();checkAutoDeduct();
+    }
+
+    function hardResetScores(){
+        if(!isAdmin)return alert("请先登录管理员账户");
+        if(confirm("❗警告：确定要开启新赛季？全员积分复位为15分！")){
+            const code=prompt("请输入代码 [25.1]：");
+            if(code==="25.1"){
+                var _key=getDateKey(virtualTime);var _saved={};
+                if(db.autoDeductLog&&db.autoDeductLog[_key])_saved[_key]=db.autoDeductLog[_key];
+                db={scores:{},punishRecords:{},maxDoneLevel:{},teaHistory:{},phoneExemptions:{},autoDeductLog:_saved,forceAutoDeduct:false};
+                saveToServer().then(()=>{selected.clear();init();alert("🚀 赛季重开成功！");});
+            }
+        }
+    }
+
+    function process(val,reason,isTea){
+        if(!isAdmin)return alert("请先登录管理员账户");if(selected.size===0)return alert("请先选人！");
+        let success=[];selected.forEach(n=>{
+            if(isTea){const last=db.teaHistory[n]||0;const cool=14*24*3600*1000;if(virtualTime-last<cool){alert(`❌ 拦截：${n} 还剩 ${Math.ceil((cool-(virtualTime-last))/(24*3600*1000))} 天。`);return}db.teaHistory[n]=virtualTime}
+            db.scores[n]+=val;success.push(n);
+            const s=db.scores[n],maxDone=db.maxDoneLevel[n]||0;
+            [15,10,5].forEach(lv=>{if(s<=-lv&&!db.punishRecords[n+"_"+lv]&&lv>maxDone)alert(`🚨 警报：${n} 分数太低！`)});
+        });if(success.length>0)saveToServer().then(()=>{selected.clear();init()});
+    }
+
+    function shareRanks(){if(!isAdmin)return alert("请先登录管理员账户");let data=STUS.map(n=>({name:n,score:db.scores[n]})).sort((a,b)=>b.score-a.score);let text=`🏆 25.1班操行排行榜 🏆\n📅 更新：${new Date(virtualTime).toLocaleDateString()}\n------------------\n`;data.forEach((s,idx)=>{text+=`${idx+1}. ${s.name} | ${getRankLabel(s.score)} (${s.score}分)\n`});const el=document.createElement("textarea");el.value=text;document.body.appendChild(el);el.select();document.execCommand("copy");document.body.removeChild(el);alert("📋 战报已复制！")}
+
+    function confirmPunish(){if(!isAdmin)return;selected.forEach(n=>{const s=db.scores[n];let lv=(s<=-15)?15:(s<=-10)?10:(s<=-5)?5:0;if(lv>0&&!db.punishRecords[n+"_"+lv]){db.punishRecords[n+"_"+lv]=true;db.maxDoneLevel[n]=Math.max(db.maxDoneLevel[n]||0,lv)}});saveToServer().then(()=>{selected.clear();init()})}
+    function applyRule(){if(!isAdmin)return;const sel=document.getElementById("ruleSelect");if(sel.value==="TEA")process(-5,"冰红茶",true);else process(parseInt(sel.value),sel.options[sel.selectedIndex].text)}
+    function softResetStatus(){if(!isAdmin)return;if(confirm("清除报警标？")){db.punishRecords={};db.maxDoneLevel={};saveToServer().then(init)}}
+    function adjustDate(d){virtualTime+=d*24*3600*1000;init()}
+    function calibrateTime(){virtualTime=new Date().getTime();init()}
+    function applyFlex(){if(!isAdmin)return;process(parseInt(document.getElementById("flexVal").value),document.getElementById("flexReason").value)}
+    function selectAll(b){if(!isAdmin)return;STUS.forEach(n=>b?selected.add(n):selected.delete(n));init()}
+
+    function getDateKey(ts){var d=new Date(ts);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+    function getTodayExemptions(name){var key=getDateKey(virtualTime);db.phoneExemptions[key]=db.phoneExemptions[key]||{};db.phoneExemptions[key][name]=db.phoneExemptions[key][name]||{};return db.phoneExemptions[key][name]}
+    function openExemptPopup(name){document.getElementById("emStudentName").innerText="👤 "+name;var d=new Date(virtualTime);document.getElementById("emDateDisplay").innerText=d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日";var ex=getTodayExemptions(name);var nBtn=document.getElementById("emNoonBtn");var eBtn=document.getElementById("emEveningBtn");nBtn.className="em-btn "+(ex.noon?"on":"off");nBtn.innerText=ex.noon?"🌅 中午已免扣（点击取消）":"🌅 今天中午不扣分";eBtn.className="em-btn "+(ex.evening?"on":"off");eBtn.innerText=ex.evening?"🌙 下午已免扣（点击取消）":"🌙 今天下午不扣分";document.getElementById("exemptModal").dataset.student=name;document.getElementById("exemptModal").classList.add("active")}
+    function closeExemptPopup(){document.getElementById("exemptModal").classList.remove("active")}
+    function toggleExemptionClick(period){var name=document.getElementById("exemptModal").dataset.student;var ex=getTodayExemptions(name);var current=!!(ex[period]);var txt=period==="noon"?"中午":"下午";var msg=current?"⚠️ "+name+" 将恢复"+txt+"自动扣分\n确认取消免扣？":"🛡️ "+name+" 今天"+txt+"不扣分\n确认设置免扣？";document.getElementById("confirmMsg").innerText=msg;document.getElementById("confirmYesBtn").onclick=function(){var ex2=getTodayExemptions(name);ex2[period]=!current;saveToServer().then(function(){closeConfirm();closeExemptPopup();init()})};document.getElementById("confirmModal").classList.add("active")}
+    function closeConfirm(){document.getElementById("confirmModal").classList.remove("active")}
+    function updateExemptIcons(){STUS.forEach(function(name){var el=document.getElementById("exIcon-"+name);if(!el)return;var ex=getTodayExemptions(name);var p=[];if(ex.noon)p.push("🌅");if(ex.evening)p.push("🌙");el.innerText=p.join("")})}
+    function toggleForceDeduct(){var forced=db.forceAutoDeduct||false;var msg=forced?"📅 关闭强制执行\n恢复周末/节假日暂停扣分模式":"📅 开启强制执行\n周五/周六/周日也正常扣分";document.getElementById("confirmMsg").innerText=msg+"\n\n确认切换？";document.getElementById("confirmYesBtn").onclick=function(){db.forceAutoDeduct=!forced;saveToServer().then(function(){closeConfirm();updateForceBtn();checkAutoDeduct();init()})};document.getElementById("confirmModal").classList.add("active")}
+    function updateForceBtn(){var btn=document.getElementById("forceDeductBtn");if(!btn)return;var forced=db.forceAutoDeduct||false;btn.style.borderColor=forced?"#e63946":"#555";btn.style.background=forced?"rgba(230,57,70,0.2)":"rgba(255,255,255,0.05)";btn.style.color=forced?"#ff6b6b":"#aaa";btn.innerText=forced?"📅 强制执行中":"📅 周末强制执行"}
+    function checkAutoDeduct(){if(!db.scores)db.scores={};var now=new Date(virtualTime);var day=now.getDay();var hour=now.getHours();var min=now.getMinutes();var key=getDateKey(virtualTime);db.autoDeductLog=db.autoDeductLog||{};db.autoDeductLog[key]=db.autoDeductLog[key]||{};var isWeekend=(day===5||day===6||day===0);var shouldDeduct=!isWeekend||(db.forceAutoDeduct===true);var st=document.getElementById("autoDeductStatus");if(st){if(isWeekend&&!db.forceAutoDeduct){st.innerText="⏸️ 周末·自动扣分暂停";st.style.color="rgba(255,255,255,0.3)"}else if(isWeekend&&db.forceAutoDeduct){st.innerText="⚠️ 强制执行·周末也扣分";st.style.color="#ff6b6b"}else{st.innerText="✅ 自动扣分进行中 (11:20 / 16:20)";st.style.color="#6bcfc0"}}if(!shouldDeduct)return;if((hour>11||(hour===11&&min>=20))&&!db.autoDeductLog[key].noon){STUS.forEach(function(n){var ex=getTodayExemptions(n);if(!(ex.noon||false)){db.scores[n]=(db.scores[n]||15)-1}});db.autoDeductLog[key].noon=true;saveToServer().then(function(){init()})}if((hour>16||(hour===16&&min>=20))&&!db.autoDeductLog[key].evening){STUS.forEach(function(n){var ex=getTodayExemptions(n);if(!(ex.evening||false)){db.scores[n]=(db.scores[n]||15)-1}});db.autoDeductLog[key].evening=true;saveToServer().then(function(){init()})}}
+    window.addEventListener("load",function(){loadFromServer().then(function(){init();setInterval(checkAutoDeduct,60000)})});
+</script>
+</body>
+</html>

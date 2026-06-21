@@ -1,0 +1,7 @@
+name = "sun-teacher-ranking"
+compatibility_date = "2026-06-12"
+pages_build_output_dir = "."
+
+[[kv_namespaces]]
+binding = "RANKING_KV"
+id = "96b0682e3f224c4a8a0d6891379877ee"
