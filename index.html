@@ -81,6 +81,7 @@ body.admin-mode .admin-only{display:block!important}.admin-only{display:none!imp
         <div class="test-tools">
             <button class="test-btn" style="color:var(--gold)" onclick="softResetStatus()">🔄 消红标</button>
             <button class="test-btn" onclick="showPasswordModal()">🔑 改密码</button>
+            <button class="test-btn" onclick="showLog()">📋 日志</button>
             <button class="test-btn" id="forceDeductBtn" onclick="toggleForceDeduct()">📅 周末强制执行</button>
         </div>
     </div>
@@ -146,7 +147,7 @@ body.admin-mode .admin-only{display:block!important}.admin-only{display:none!imp
     const STUS = ["包顺通","郑清颢","邹仁泽","秦韵贺","赵巍霖","王晨旭","张广涛","程泓博","姜乙丰","唐佳奇","赵梓渤","吴俊霖","王译广"];
     const API_BASE = "/api";
     let virtualTime = new Date().getTime();
-    let db = {scores:{},punishRecords:{},maxDoneLevel:{},teaHistory:{},phoneExemptions:{},autoDeductLog:{},forceAutoDeduct:false};
+    let db = {scores:{},punishRecords:{},maxDoneLevel:{},teaHistory:{},phoneExemptions:{},autoDeductLog:{},forceAutoDeduct:false,changeLog:[]};
     let selected = new Set(), authPassword = "", isAdmin = false;
 
     function getRankLabel(s) {
@@ -159,7 +160,7 @@ body.admin-mode .admin-only{display:block!important}.admin-only{display:none!imp
       try{var resp=await fetch(API_BASE+"/data?"+Date.now(),{headers:{"x-password":"251"}});
       var result=await resp.json();
       if(result.success&&result.data){
-        db=result.data;if(!db.scores)db.scores={};db.phoneExemptions=db.phoneExemptions||{};
+        db=result.data;if(!db.scores)db.scores={};if(!db.changeLog)db.changeLog=[];db.phoneExemptions=db.phoneExemptions||{};
         db.autoDeductLog=db.autoDeductLog||{};if(db.forceAutoDeduct===undefined)db.forceAutoDeduct=false;
         STUS.forEach(function(n){if(db.scores[n]===undefined)db.scores[n]=15;});return true;
       }return false;
@@ -178,7 +179,7 @@ body.admin-mode .admin-only{display:block!important}.admin-only{display:none!imp
         document.getElementById("adminLoginModal").classList.remove("active");
         document.getElementById("adminLoginBtn").style.display="none";
         var r2=await fetch(API_BASE+"/data?"+Date.now(),{headers:{"x-password":authPassword}});
-        var d2=await r2.json();if(d2.success&&d2.data){db=d2.data;if(!db.scores)db.scores={};db.phoneExemptions=db.phoneExemptions||{};db.autoDeductLog=db.autoDeductLog||{};if(db.forceAutoDeduct===undefined)db.forceAutoDeduct=false;STUS.forEach(function(n){if(db.scores[n]===undefined)db.scores[n]=15;});}
+        var d2=await r2.json();if(d2.success&&d2.data){db=d2.data;if(!db.scores)db.scores={};if(!db.changeLog)db.changeLog=[];db.phoneExemptions=db.phoneExemptions||{};db.autoDeductLog=db.autoDeductLog||{};if(db.forceAutoDeduct===undefined)db.forceAutoDeduct=false;STUS.forEach(function(n){if(db.scores[n]===undefined)db.scores[n]=15;});}
         init();
       }else document.getElementById("adminLoginError").innerText="❌ 密码错误";
     }
@@ -253,9 +254,9 @@ body.admin-mode .admin-only{display:block!important}.admin-only{display:none!imp
 
     function shareRanks(){if(!isAdmin)return alert("请先登录管理员账户");let data=STUS.map(n=>({name:n,score:db.scores[n]})).sort((a,b)=>b.score-a.score);let text=`🏆 25.1班操行排行榜 🏆\n📅 更新：${new Date(virtualTime).toLocaleDateString()}\n------------------\n`;data.forEach((s,idx)=>{text+=`${idx+1}. ${s.name} | ${getRankLabel(s.score)} (${s.score}分)\n`});const el=document.createElement("textarea");el.value=text;document.body.appendChild(el);el.select();document.execCommand("copy");document.body.removeChild(el);alert("📋 战报已复制！")}
 
-    function confirmPunish(){if(!isAdmin)return;selected.forEach(n=>{const s=db.scores[n];let lv=(s<=-15)?15:(s<=-10)?10:(s<=-5)?5:0;if(lv>0&&!db.punishRecords[n+"_"+lv]){db.punishRecords[n+"_"+lv]=true;db.maxDoneLevel[n]=Math.max(db.maxDoneLevel[n]||0,lv)}});saveToServer().then(()=>{selected.clear();init()})}
+    function confirmPunish(){if(!isAdmin)return;var ns=[];selected.forEach(n=>{const s=db.scores[n];let lv=(s<=-15)?15:(s<=-10)?10:(s<=-5)?5:0;if(lv>0&&!db.punishRecords[n+"_"+lv]){db.punishRecords[n+"_"+lv]=true;db.maxDoneLevel[n]=Math.max(db.maxDoneLevel[n]||0,lv);ns.push(n+"(收"+lv/5+"晚)")}});if(ns.length>0)logChange("📱 手机收纳确认",ns.join("、"));saveToServer().then(()=>{selected.clear();init()})}
     function applyRule(){if(!isAdmin)return;const sel=document.getElementById("ruleSelect");if(sel.value==="TEA")process(-5,"冰红茶",true);else process(parseInt(sel.value),sel.options[sel.selectedIndex].text)}
-    function softResetStatus(){if(!isAdmin)return;if(confirm("清除报警标？")){db.punishRecords={};db.maxDoneLevel={};saveToServer().then(init)}}
+    function softResetStatus(){if(!isAdmin)return;if(confirm("清除报警标？")){db.punishRecords={};db.maxDoneLevel={};logChange("🔄 清除报警标","所有报警标志已清除");saveToServer().then(init)}}
     function adjustDate(d){virtualTime+=d*24*3600*1000;init()}
     function calibrateTime(){virtualTime=new Date().getTime();init()}
     function applyFlex(){if(!isAdmin)return;process(parseInt(document.getElementById("flexVal").value),document.getElementById("flexReason").value)}
@@ -265,13 +266,18 @@ body.admin-mode .admin-only{display:block!important}.admin-only{display:none!imp
     function getTodayExemptions(name){var key=getDateKey(virtualTime);db.phoneExemptions[key]=db.phoneExemptions[key]||{};db.phoneExemptions[key][name]=db.phoneExemptions[key][name]||{};return db.phoneExemptions[key][name]}
     function openExemptPopup(name){document.getElementById("emStudentName").innerText="👤 "+name;var d=new Date(virtualTime);document.getElementById("emDateDisplay").innerText=d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日";var ex=getTodayExemptions(name);var nBtn=document.getElementById("emNoonBtn");var eBtn=document.getElementById("emEveningBtn");nBtn.className="em-btn "+(ex.noon?"on":"off");nBtn.innerText=ex.noon?"🌅 中午已免扣（点击取消）":"🌅 今天中午不扣分";eBtn.className="em-btn "+(ex.evening?"on":"off");eBtn.innerText=ex.evening?"🌙 下午已免扣（点击取消）":"🌙 今天下午不扣分";document.getElementById("exemptModal").dataset.student=name;document.getElementById("exemptModal").classList.add("active")}
     function closeExemptPopup(){document.getElementById("exemptModal").classList.remove("active")}
-    function toggleExemptionClick(period){var name=document.getElementById("exemptModal").dataset.student;var ex=getTodayExemptions(name);var current=!!(ex[period]);var txt=period==="noon"?"中午":"下午";var msg=current?"⚠️ "+name+" 将恢复"+txt+"自动扣分\n确认取消免扣？":"🛡️ "+name+" 今天"+txt+"不扣分\n确认设置免扣？";document.getElementById("confirmMsg").innerText=msg;document.getElementById("confirmYesBtn").onclick=function(){var ex2=getTodayExemptions(name);ex2[period]=!current;saveToServer().then(function(){closeConfirm();closeExemptPopup();init()})};document.getElementById("confirmModal").classList.add("active")}
+    function toggleExemptionClick(period){var name=document.getElementById("exemptModal").dataset.student;var ex=getTodayExemptions(name);var current=!!(ex[period]);var txt=period==="noon"?"中午":"下午";var msg=current?"⚠️ "+name+" 将恢复"+txt+"自动扣分\n确认取消免扣？":"🛡️ "+name+" 今天"+txt+"不扣分\n确认设置免扣？";document.getElementById("confirmMsg").innerText=msg;document.getElementById("confirmYesBtn").onclick=function(){var ex2=getTodayExemptions(name);ex2[period]=!current;logChange(current?"🔄 取消免扣":"🛡️ 设置免扣",name+txt+(!current?"免扣":"恢复"));saveToServer().then(function(){closeConfirm();closeExemptPopup();init()})};document.getElementById("confirmModal").classList.add("active")}
     function closeConfirm(){document.getElementById("confirmModal").classList.remove("active")}
     function updateExemptIcons(){STUS.forEach(function(name){var el=document.getElementById("exIcon-"+name);if(!el)return;var ex=getTodayExemptions(name);var p=[];if(ex.noon)p.push("🌅");if(ex.evening)p.push("🌙");el.innerText=p.join("")})}
-    function toggleForceDeduct(){var forced=db.forceAutoDeduct||false;var msg=forced?"📅 关闭强制执行\n恢复周末/节假日暂停扣分模式":"📅 开启强制执行\n周五/周六/周日也正常扣分";document.getElementById("confirmMsg").innerText=msg+"\n\n确认切换？";document.getElementById("confirmYesBtn").onclick=function(){db.forceAutoDeduct=!forced;saveToServer().then(function(){closeConfirm();updateForceBtn();checkAutoDeduct();init()})};document.getElementById("confirmModal").classList.add("active")}
+    function toggleForceDeduct(){var forced=db.forceAutoDeduct||false;var msg=forced?"📅 关闭强制执行\n恢复周末/节假日暂停扣分模式":"📅 开启强制执行\n周五/周六/周日也正常扣分";logChange(forced?"⏸️ 关闭强制":"⚠️ 开启强制","周末扣分模式:"+(forced?"关闭":"开启"));document.getElementById("confirmMsg").innerText=msg+"\n\n确认切换？";document.getElementById("confirmYesBtn").onclick=function(){db.forceAutoDeduct=!forced;saveToServer().then(function(){closeConfirm();updateForceBtn();checkAutoDeduct();init()})};document.getElementById("confirmModal").classList.add("active")}
     function updateForceBtn(){var btn=document.getElementById("forceDeductBtn");if(!btn)return;var forced=db.forceAutoDeduct||false;btn.style.borderColor=forced?"#e63946":"#555";btn.style.background=forced?"rgba(230,57,70,0.2)":"rgba(255,255,255,0.05)";btn.style.color=forced?"#ff6b6b":"#aaa";btn.innerText=forced?"📅 强制执行中":"📅 周末强制执行"}
-    function checkAutoDeduct(){if(!db.scores)db.scores={};var now=new Date(virtualTime);var day=now.getDay();var hour=now.getHours();var min=now.getMinutes();var key=getDateKey(virtualTime);db.autoDeductLog=db.autoDeductLog||{};db.autoDeductLog[key]=db.autoDeductLog[key]||{};var isWeekend=(day===5||day===6||day===0);var shouldDeduct=!isWeekend||(db.forceAutoDeduct===true);var st=document.getElementById("autoDeductStatus");if(st){if(isWeekend&&!db.forceAutoDeduct){st.innerText="⏸️ 周末·自动扣分暂停";st.style.color="rgba(255,255,255,0.3)"}else if(isWeekend&&db.forceAutoDeduct){st.innerText="⚠️ 强制执行·周末也扣分";st.style.color="#ff6b6b"}else{st.innerText="✅ 自动扣分进行中 (11:20 / 16:20)";st.style.color="#6bcfc0"}}if(!shouldDeduct)return;if((hour>11||(hour===11&&min>=20))&&!db.autoDeductLog[key].noon){STUS.forEach(function(n){var ex=getTodayExemptions(n);if(!(ex.noon||false)){db.scores[n]=(db.scores[n]||15)-1}});db.autoDeductLog[key].noon=true;saveToServer().then(function(){init()})}if((hour>16||(hour===16&&min>=20))&&!db.autoDeductLog[key].evening){STUS.forEach(function(n){var ex=getTodayExemptions(n);if(!(ex.evening||false)){db.scores[n]=(db.scores[n]||15)-1}});db.autoDeductLog[key].evening=true;saveToServer().then(function(){init()})}}
-    window.addEventListener("load",function(){loadFromServer().then(function(){init();setInterval(checkAutoDeduct,60000)})});
+    function checkAutoDeduct(){if(!db.scores)db.scores={};var now=new Date(virtualTime);var day=now.getDay();var hour=now.getHours();var min=now.getMinutes();var key=getDateKey(virtualTime);db.autoDeductLog=db.autoDeductLog||{};db.autoDeductLog[key]=db.autoDeductLog[key]||{};var isWeekend=(day===5||day===6||day===0);var shouldDeduct=!isWeekend||(db.forceAutoDeduct===true);var st=document.getElementById("autoDeductStatus");if(st){if(isWeekend&&!db.forceAutoDeduct){st.innerText="⏸️ 周末·自动扣分暂停";st.style.color="rgba(255,255,255,0.3)"}else if(isWeekend&&db.forceAutoDeduct){st.innerText="⚠️ 强制执行·周末也扣分";st.style.color="#ff6b6b"}else{st.innerText="✅ 自动扣分进行中 (11:20 / 16:20)";st.style.color="#6bcfc0"}}if(!shouldDeduct)return;if((hour>11||(hour===11&&min>=20))&&!db.autoDeductLog[key].noon){var a=0;STUS.forEach(function(n){var ex=getTodayExemptions(n);if(!(ex.noon||false)){db.scores[n]=(db.scores[n]||15)-1;a++}});db.autoDeductLog[key].noon=true;if(a>0)logChange("⏰ 午间自动扣分",a+"人各-1分");saveToServer().then(function(){init()})}if((hour>16||(hour===16&&min>=20))&&!db.autoDeductLog[key].evening){var b=0;STUS.forEach(function(n){var ex=getTodayExemptions(n);if(!(ex.evening||false)){db.scores[n]=(db.scores[n]||15)-1;b++}});db.autoDeductLog[key].evening=true;if(b>0)logChange("🌙 晚间自动扣分",b+"人各-1分");saveToServer().then(function(){init()})}}
+    
+    function logChange(act,det){if(!db.changeLog)db.changeLog=[];db.changeLog.push({t:new Date(virtualTime).toLocaleString("zh-CN"),a:act,i:det});if(db.changeLog.length>500)db.changeLog.splice(0,db.changeLog.length-500)}
+
+    function showLog(){if(!isAdmin)return alert("请先登录管理员账户");var L=document.getElementById("logList");if(!L)return;var lg=db.changeLog||[];var h=lg.length===0?
+ <div style=text-align:center;color:rgba(255,255,255,0.3);padding:20px;>暂无操作日志</div>:"";    window.addEventListener("load",function(){loadFromServer().then(function(){init();setInterval(checkAutoDeduct,60000)})});
 </script>
+<div id="logModal"><div class="lm-box"><div class="lm-title">📋 操作日志</div><div class="lm-list" id="logList"></div><button class="lm-close" onclick="document.getElementById('logModal').classList.remove('active')">关闭</button></div></div>
 </body>
 </html>
